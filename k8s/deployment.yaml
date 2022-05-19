@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stress-app-deployment
+  labels:
+    app: stress-app-deployment
+spec:
+  replicas: 500
+  selector:
+    matchLabels:
+      app: stress-app-deployment
+  template:
+    metadata:
+      labels:
+        app: stress-app-deployment
+    spec:
+      containers:
+      - name: stress-app
+        image: REGION.ocir.io/TENANCY_HASH/stress-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
+      imagePullSecrets:
+        - name: ocirsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stress-app-service-lbaas
+  labels:
+    app: stress-app-deployment
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"    
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+
+  selector:
+    app: stress-app-deployment
